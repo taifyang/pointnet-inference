@@ -46,7 +46,7 @@ if __name__ == '__main__':
     data_room = data_room.reshape((-1, point_num, data_room.shape[1]))
     index_room = index_room.reshape((-1, point_num))
 
-    onnx_session = onnxruntime.InferenceSession("best_model.onnx", providers=['CUDAExecutionProvider', 'CPUExecutionProvider'])
+    onnx_session = onnxruntime.InferenceSession("sem_seg.onnx", providers=['CUDAExecutionProvider', 'CPUExecutionProvider'])
 
     input_name=[]
     for node in onnx_session.get_inputs():

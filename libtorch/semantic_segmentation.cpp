@@ -27,12 +27,12 @@ struct point
 
 int main()
 {
-	std::ifstream fin("Area_1_conferenceRoom_1.txt");
+	std::ifstream infile("Area_1_conferenceRoom_1.txt");
 	float x, y, z, r, g, b, l;
 	std::vector<point> pts;
 	std::vector<float> points_x, points_y, points_z;
 	int points_num = 0;
-	while (fin >> x >> y >> z >> r >> g >> b >> l)
+	while (infile >> x >> y >> z >> r >> g >> b >> l)
 	{
 		point pt(x, y, z, r, g, b);
 		pts.push_back(pt);
@@ -150,12 +150,12 @@ int main()
 	std::vector<std::vector<int>> vote_label_pool(points_num, std::vector<int>(class_num, 0));
 	int num_blocks = data_rooms.size();
 
-	torch::jit::script::Module module = torch::jit::load("best_model.pt");
+	torch::jit::script::Module module = torch::jit::load("sem_seg.pt");
 	module.to(torch::kCUDA);
 
 	for (int sbatch = 0; sbatch < num_blocks; sbatch++)
 	{
-		std::cout << sbatch << std::endl;
+		//std::cout << sbatch << std::endl;
 		int start_idx = sbatch;
 		int end_idx = std::min(sbatch + 1, num_blocks);
 		int real_batch_size = end_idx - start_idx;
@@ -194,13 +194,13 @@ int main()
 		}	
 	}
 
-	std::ofstream fout("pred.txt");
+	std::ofstream outfile("pred.txt");
 	for (size_t i = 0; i < points_num; i++)
 	{
 		int max_index = std::max_element(vote_label_pool[i].begin(), vote_label_pool[i].end()) - vote_label_pool[i].begin();
-		fout << pts[i].m_x << " " << pts[i].m_y << " " << pts[i].m_z << " " << max_index << std::endl;
+		outfile << pts[i].m_x << " " << pts[i].m_y << " " << pts[i].m_z << " " << max_index << std::endl;
 	}
 
-	fout.close();
+	outfile.close();
 	return 0;
 }

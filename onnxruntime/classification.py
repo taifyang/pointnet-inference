@@ -22,7 +22,7 @@ if __name__ == '__main__':
     points = np.reshape(point_set, ((1, point_num, 3)))
     points = points.swapaxes(2, 1)
 
-    onnx_session = onnxruntime.InferenceSession("best_model.onnx", providers=['CUDAExecutionProvider', 'CPUExecutionProvider'])
+    onnx_session = onnxruntime.InferenceSession("cls.onnx", providers=['CUDAExecutionProvider', 'CPUExecutionProvider'])
 
     input_name=[]
     for node in onnx_session.get_inputs():

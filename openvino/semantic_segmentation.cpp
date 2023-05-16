@@ -26,12 +26,12 @@ struct point
 
 int main()
 {
-	std::ifstream fin("Area_1_conferenceRoom_1.txt");
 	float x, y, z, r, g, b, l;
 	std::vector<point> pts;
 	std::vector<float> points_x, points_y, points_z;
 	int points_num = 0;
-	while (fin >> x >> y >> z >> r >> g >> b >> l)
+	std::ifstream infile("Area_1_conferenceRoom_1.txt");
+	while (infile >> x >> y >> z >> r >> g >> b >> l)
 	{
 		point pt(x, y, z, r, g, b);
 		pts.push_back(pt);
@@ -153,7 +153,7 @@ int main()
 	int num_blocks = data_rooms.size();
 
 	ov::Core core;
-	auto model = core.compile_model("best_model.onnx", "CPU");
+	auto model = core.compile_model("sem_seg.onnx", "CPU");
 	auto iq = model.create_infer_request();
 	auto input = iq.get_input_tensor(0);
 	auto output = iq.get_output_tensor(0);
@@ -162,7 +162,7 @@ int main()
 
 	for (int sbatch = 0; sbatch < num_blocks; sbatch++)
 	{
-		std::cout << sbatch << std::endl;
+		//std::cout << sbatch << std::endl;
 		int start_idx = sbatch;
 		int end_idx = std::min(sbatch + 1, num_blocks);
 		int real_batch_size = end_idx - start_idx;
@@ -213,13 +213,13 @@ int main()
 		}
 	}
 
-	std::ofstream fout("pred.txt");
+	std::ofstream outfile("pred.txt");
 	for (size_t i = 0; i < points_num; i++)
 	{
 		int max_index = std::max_element(vote_label_pool[i].begin(), vote_label_pool[i].end()) - vote_label_pool[i].begin();
-		fout << pts[i].m_x << " " << pts[i].m_y << " " << pts[i].m_z << " " << max_index << std::endl;
+		outfile << pts[i].m_x << " " << pts[i].m_y << " " << pts[i].m_z << " " << max_index << std::endl;
 	}
 
-	fout.close();
+	outfile.close();
 	return 0;
 }

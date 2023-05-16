@@ -10,19 +10,18 @@ const int class_num = 10;
 
 void pc_normalize(std::vector<float>& points)
 {
-	int N = points.size() / 3;
 	float mean_x = 0, mean_y = 0, mean_z = 0;
-	for (size_t i = 0; i < N; ++i)
+	for (size_t i = 0; i < point_num; ++i)
 	{
 		mean_x += points[3 * i];
 		mean_y += points[3 * i + 1];
 		mean_z += points[3 * i + 2];
 	}
-	mean_x /= N;
-	mean_y /= N;
-	mean_z /= N;
+	mean_x /= point_num;
+	mean_y /= point_num;
+	mean_z /= point_num;
 
-	for (size_t i = 0; i < N; ++i)
+	for (size_t i = 0; i < point_num; ++i)
 	{
 		points[3 * i] -= mean_x;
 		points[3 * i + 1] -= mean_y;
@@ -30,13 +29,13 @@ void pc_normalize(std::vector<float>& points)
 	}
 
 	float m = 0;
-	for (size_t i = 0; i < N; ++i)
+	for (size_t i = 0; i < point_num; ++i)
 	{
 		if (sqrt(pow(points[3 * i], 2) + pow(points[3 * i + 1], 2) + pow(points[3 * i + 2], 2)) > m)
 			m = sqrt(pow(points[3 * i], 2) + pow(points[3 * i + 1], 2) + pow(points[3 * i + 2], 2));
 	}
 
-	for (size_t i = 0; i < N; ++i)
+	for (size_t i = 0; i < point_num; ++i)
 	{
 		points[3 * i] /= m;
 		points[3 * i + 1] /= m;
@@ -48,7 +47,7 @@ void pc_normalize(std::vector<float>& points)
 void classfier(std::vector<float> & points)
 {
 	ov::Core core;                
-	auto model = core.compile_model("best_model.onnx","CPU"); 
+	auto model = core.compile_model("cls.onnx","CPU"); 
 	auto iq = model.create_infer_request();
 	auto input = iq.get_input_tensor(0);
 	auto output = iq.get_output_tensor(0);
@@ -74,10 +73,9 @@ void classfier(std::vector<float> & points)
 int main()
 {
 	std::vector<float> points;
-	std::ifstream infile;
 	float x, y, z, nx, ny, nz;
 	char ch;
-	infile.open("bed_0610.txt");
+	std::ifstream infile("bed_0610.txt");
 	for (size_t i = 0; i < point_num; i++)
 	{
 		infile >> x >> ch >> y >> ch >> z >> ch >> nx >> ch >> ny >> ch >> nz;

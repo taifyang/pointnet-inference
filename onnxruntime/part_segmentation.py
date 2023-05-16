@@ -1,60 +1,37 @@
-import numpy as np
-import onnxruntime
+import torch
+import pointnet_part_seg
 
 
 point_num = 2048
-class_num = 1
+class_num = 16
+part_num = 50
+normal_channel = False
 
- 
 def to_categorical(y, class_num):
     """ 1-hot encodes a tensor """
-    new_y = np.eye(class_num)[y,]
-    return new_y.astype(np.float32)
+    new_y = torch.eye(class_num)[y.cpu().data.numpy(),]
+    if (y.is_cuda):
+        return new_y.cuda()
+    return new_y
 
+model = pointnet_part_seg.get_model(part_num, normal_channel)
+#model = model.cuda() #cpu版本需注释此句
+model.eval()
+checkpoint = torch.load('./part_seg.pth')
+model.load_state_dict(checkpoint['model_state_dict'])
 
-def pc_normalize(pc):
-    centroid = np.mean(pc, axis=0)
-    pc = pc - centroid
-    m = np.max(np.sqrt(np.sum(pc ** 2, axis=1)))
-    pc = pc / m
-    return pc
+x = (torch.rand(1, 6, point_num) if normal_channel else torch.rand(1, 3, point_num))
+#=x = x.cuda() #cpu版本需注释此句
+label = torch.randint(0, 1, (1, 1))
+#label = label.cuda() #cpu版本需注释此句
 
-
-if __name__ == '__main__':
-    file = '85a15c26a6e9921ae008cc4902bfe3cd.txt'
-    data = np.loadtxt(file).astype(np.float32)
-    point_set = data[:, 0:3]
-    point_set[:, 0:3] = pc_normalize(point_set[:, 0:3])
-
-    choice = np.random.choice(point_set.shape[0], point_num, replace=True)
-    point_set = point_set[choice, :][:, 0:3]
-    pts = point_set
-
-    points = np.reshape(point_set, ((1, point_num, 3)))
-    points = points.swapaxes(2, 1)
-    label = np.array([[0]], dtype=np.int32)
-
-    onnx_session = onnxruntime.InferenceSession("best_model.onnx", providers=['CUDAExecutionProvider', 'CPUExecutionProvider'])
-
-    input_name=[]
-    for node in onnx_session.get_inputs():
-        input_name.append(node.name)
-
-    output_name=[]
-    for node in onnx_session.get_outputs():
-        output_name.append(node.name)
-
-    input_feed={}
-    input_feed[input_name[0]] = points
-    input_feed[input_name[1]] = to_categorical(label, class_num)
-
-    pred = onnx_session.run(None, input_feed)[0]
-
-    cur_pred_val_logits = pred
-    cur_pred_val = np.zeros((1, point_num)).astype(np.int32)
-    
-    logits = cur_pred_val_logits[0, :, :]
-    cur_pred_val[0, :] = np.argmax(logits, 1)
-
-    pts = np.append(points.reshape(point_num, 3), cur_pred_val[0, :].reshape(point_num, 1), 1)
-    np.savetxt('pred.txt', pts, fmt='%.06f')       
+export_onnx_file = "./part_seg.onnx"			
+torch.onnx.export(model,
+                    (x, to_categorical(label, class_num)),
+                    export_onnx_file,              
+                    opset_version = 10,
+                    do_constant_folding = True,	
+                    input_names = ["input"],		
+                    output_names = ["output"],	
+                    dynamic_axes = {"input":{0:"batch_size"},
+                                    "output":{0:"batch_size"}})
