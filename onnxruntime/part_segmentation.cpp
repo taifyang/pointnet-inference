@@ -2,7 +2,7 @@
 #include <vector>
 #include <fstream>
 #include <ctime>
-#include <openvino/openvino.hpp>
+#include <onnxruntime_cxx_api.h>
 
 
 const int point_num = 2048;
@@ -68,38 +68,62 @@ void resample(std::vector<float>& points)
 
 std::vector<int> classfier(std::vector<float> & points, std::vector<float> & labels)
 {
-	std::vector<int> max_index(point_num, 0);
+	Ort::Env env(ORT_LOGGING_LEVEL_WARNING, "part_seg");
+	Ort::SessionOptions session_options;
+	session_options.SetIntraOpNumThreads(1);
+	session_options.SetGraphOptimizationLevel(GraphOptimizationLevel::ORT_ENABLE_EXTENDED);
 
-	ov::Core core;
-	//auto model = core.compile_model("part_seg.onnx", "CPU");
-	auto model = core.compile_model("./part_seg/part_seg_fp16.xml", "CPU");
-	auto iq = model.create_infer_request();
+	OrtCUDAProviderOptions cuda_option;
+	cuda_option.device_id = 0;
+	cuda_option.arena_extend_strategy = 0;
+	cuda_option.cudnn_conv_algo_search = OrtCudnnConvAlgoSearchExhaustive;
+	cuda_option.gpu_mem_limit = SIZE_MAX;
+	cuda_option.do_copy_in_default_stream = 1;
+	session_options.SetGraphOptimizationLevel(GraphOptimizationLevel::ORT_ENABLE_ALL);
+	session_options.AppendExecutionProvider_CUDA(cuda_option);
 
-	auto input0 = iq.get_input_tensor(0);
-	input0.set_shape({ 1, 3, point_num });
-	float* input_data_host0 = input0.data<float>();
+	const wchar_t* model_path = L"part_seg.onnx";
+	Ort::Session session(env, model_path, session_options);
+	Ort::AllocatorWithDefaultOptions allocator;
+
+	size_t num_input_nodes = session.GetInputCount();
+	std::vector<const char*> input_node_names = { "input.1" , "1"};
+	std::vector<const char*> output_node_names = { "277" };
+
+	const size_t input_tensor_size0 = 1 * 3 * point_num;
+	std::vector<float> input_tensor_values0(input_tensor_size0);
 	for (size_t i = 0; i < 3; i++)
 	{
 		for (size_t j = 0; j < point_num; j++)
 		{
-			input_data_host0[i * point_num + j] = points[3 * j + i];
-			//std::cout << input_data_host[i * point_num + j] << " ";
+			input_tensor_values0[point_num * i + j] = points[3 * j + i];
 		}
-		//std::cout << std::endl;
 	}
+	std::vector<int64_t> input_node_dims0 = { 1, 3, point_num };
+	auto memory_info0 = Ort::MemoryInfo::CreateCpu(OrtArenaAllocator, OrtMemTypeDefault);
+	Ort::Value input_tensor0 = Ort::Value::CreateTensor<float>(memory_info0, input_tensor_values0.data(), input_tensor_size0, input_node_dims0.data(), input_node_dims0.size());
 
-	auto input1 = iq.get_input_tensor(1);
-	input1.set_shape({ 1, 1, class_num });
-	float* input_data_host1 = input1.data<float>();
+	const size_t input_tensor_size1 = 1 * 1 * class_num;
+	std::vector<float> input_tensor_values1(input_tensor_size0);
 	for (size_t i = 0; i < class_num; i++)
 	{
-		input_data_host1[i] = labels[i];
+		input_tensor_values1[i] = labels[i];
 	}
+	std::vector<int64_t> input_node_dims1 = { 1, 1, class_num };
+	auto memory_info1 = Ort::MemoryInfo::CreateCpu(OrtArenaAllocator, OrtMemTypeDefault);
+	Ort::Value input_tensor1 = Ort::Value::CreateTensor<float>(memory_info1, input_tensor_values1.data(), input_tensor_size1, input_node_dims1.data(), input_node_dims1.size());
 
-	iq.infer();
+	std::vector<Ort::Value> ort_inputs;
+	ort_inputs.push_back(std::move(input_tensor0));
+	ort_inputs.push_back(std::move(input_tensor1));
 
-	auto output = iq.get_output_tensor(0);
-	float* prob = output.data<float>();
+	std::vector<Ort::Value> output_tensors = session.Run(Ort::RunOptions{ nullptr }, input_node_names.data(), ort_inputs.data(), input_node_names.size(), output_node_names.data(), output_node_names.size());
+
+	const float* rawOutput = output_tensors[0].GetTensorData<float>();
+	std::vector<int64_t> outputShape = output_tensors[0].GetTensorTypeAndShapeInfo().GetShape();
+	size_t count = output_tensors[0].GetTensorTypeAndShapeInfo().GetElementCount();
+	std::vector<float> prob(rawOutput, rawOutput + count);
+
 	std::vector<std::vector<float>> outputs(point_num, std::vector<float>(parts_num, 0));
 
 	for (size_t i = 0; i < point_num; i++)
@@ -111,6 +135,8 @@ std::vector<int> classfier(std::vector<float> & points, std::vector<float> & lab
 		}
 		//std::cout << std::endl;
 	}
+
+	std::vector<int> max_index(point_num, 0);
 
 	for (size_t i = 0; i < point_num; i++)
 	{

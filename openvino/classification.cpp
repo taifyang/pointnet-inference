@@ -47,7 +47,8 @@ void pc_normalize(std::vector<float>& points)
 void classfier(std::vector<float> & points)
 {
 	ov::Core core;                
-	auto model = core.compile_model("cls.onnx","CPU"); 
+	//auto model = core.compile_model("cls.onnx","CPU"); 
+	auto model = core.compile_model("./cls/cls_fp16.xml","CPU"); 
 	auto iq = model.create_infer_request();
 	auto input = iq.get_input_tensor(0);
 	auto output = iq.get_output_tensor(0);
