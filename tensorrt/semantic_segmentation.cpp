@@ -148,8 +148,8 @@ int main()
 			point_idxs.insert(point_idxs.end(), point_idxs_repeat.begin(), point_idxs_repeat.end());
 
 			std::random_device rd;
-			std::mt19937 g(rd());	// Ëæ»úÊıÒıÇæ:»ùÓÚÃ·É­²øÈÆÆ÷Ëã·¨µÄËæ»úÊıÉú³ÉÆ÷
-			std::shuffle(point_idxs.begin(), point_idxs.end(), g);	// ´òÂÒË³Ğò£¬ÖØĞÂÅÅĞò£¨Ëæ»úĞòÁĞ£©
+			std::mt19937 g(rd());	// éšæœºæ•°å¼•æ“:åŸºäºæ¢…æ£®ç¼ ç»•å™¨ç®—æ³•çš„éšæœºæ•°ç”Ÿæˆå™¨
+			std::shuffle(point_idxs.begin(), point_idxs.end(), g);	// æ‰“ä¹±é¡ºåºï¼Œé‡æ–°æ’åºï¼ˆéšæœºåºåˆ—ï¼‰
 
 			std::vector<point> data_batch;
 			for (size_t i = 0; i < point_idxs.size(); i++)
