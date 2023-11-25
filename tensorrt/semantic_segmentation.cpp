@@ -203,14 +203,14 @@ int main()
 	cudaStreamCreate(&stream);
 
 	float* input_data_device = nullptr;
-	float output_data_host1[1 * 64 * 64];
+	float output_data_host0[1 * 64 * 64];
+	float* output_data_device0 = nullptr;
+	float output_data_host1[1 * point_num * class_num];
 	float* output_data_device1 = nullptr;
-	float output_data_host2[1 * point_num * class_num];
-	float* output_data_device2 = nullptr;
 	const size_t input_numel = 1 * 9 * point_num;
 	cudaMalloc(&input_data_device, input_numel * sizeof(float));
+	cudaMalloc(&output_data_device0, sizeof(output_data_host0));
 	cudaMalloc(&output_data_device1, sizeof(output_data_host1));
-	cudaMalloc(&output_data_device2, sizeof(output_data_host2));
 
 	std::vector<float> input_tensor_values(input_numel);
 	for (int sbatch = 0; sbatch < num_blocks; sbatch++)
@@ -245,11 +245,11 @@ int main()
 		}
 
 		cudaMemcpyAsync(input_data_device, input_data_host, input_numel * sizeof(float), cudaMemcpyHostToDevice, stream);
-		float* bindings[] = { input_data_device, output_data_device1, output_data_device2 };
+		float* bindings[] = { input_data_device, output_data_device0, output_data_device1 };
 
 		bool success = execution_context->enqueueV2((void**)bindings, stream, nullptr);
+		cudaMemcpyAsync(output_data_host0, output_data_device0, sizeof(output_data_host0), cudaMemcpyDeviceToHost, stream);
 		cudaMemcpyAsync(output_data_host1, output_data_device1, sizeof(output_data_host1), cudaMemcpyDeviceToHost, stream);
-		cudaMemcpyAsync(output_data_host2, output_data_device2, sizeof(output_data_host2), cudaMemcpyDeviceToHost, stream);
 		cudaStreamSynchronize(stream);
 
 		std::vector<std::vector<float>> outputs(point_num, std::vector<float>(class_num, 0));
@@ -257,7 +257,7 @@ int main()
 		{
 			for (size_t j = 0; j < class_num; j++)
 			{
-				outputs[i][j] = output_data_host2[i * class_num + j];
+				outputs[i][j] = output_data_host1[i * class_num + j];
 			}
 		}
 

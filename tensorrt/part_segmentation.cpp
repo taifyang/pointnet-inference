@@ -121,41 +121,41 @@ std::vector<int> classfier(std::vector<float>& points, std::vector<float>& label
 	cudaStream_t stream = nullptr;
 	cudaStreamCreate(&stream);
 
-	float* input_data_host1 = nullptr;
+	float* input_data_host0 = nullptr;
 	const size_t input_numel = 1 * 3 * point_num;
-	cudaMallocHost(&input_data_host1, input_numel * sizeof(float));
+	cudaMallocHost(&input_data_host0, input_numel * sizeof(float));
 	for (size_t i = 0; i < 3; i++)
 	{
 		for (size_t j = 0; j < point_num; j++)
 		{
-			input_data_host1[point_num * i + j] = points[3 * j + i];
+			input_data_host0[point_num * i + j] = points[3 * j + i];
 		}
 	}
 
-	float* input_data_host2 = nullptr;
-	cudaMallocHost(&input_data_host2, 1 * 1 * class_num * sizeof(float));
+	float* input_data_host1 = nullptr;
+	cudaMallocHost(&input_data_host1, 1 * 1 * class_num * sizeof(float));
 	for (size_t i = 0; i < class_num; i++)
 	{
-		input_data_host2[i] = labels[i];
+		input_data_host1[i] = labels[i];
 	}
 
+	float* input_data_device0 = nullptr;
 	float* input_data_device1 = nullptr;
-	float* input_data_device2 = nullptr;
-	float output_data_host1[1 * 128 * 128];
+	float output_data_host0[1 * 128 * 128];
+	float* output_data_device0 = nullptr;
+	float output_data_host1[1 * point_num * parts_num];
 	float* output_data_device1 = nullptr;
-	float output_data_host2[1 * point_num * parts_num];
-	float* output_data_device2 = nullptr;
-	cudaMalloc(&input_data_device1, input_numel * sizeof(float));
-	cudaMalloc(&input_data_device2, class_num * sizeof(float));
+	cudaMalloc(&input_data_device0, input_numel * sizeof(float));
+	cudaMalloc(&input_data_device1, class_num * sizeof(float));
+	cudaMalloc(&output_data_device0, sizeof(output_data_host0));
 	cudaMalloc(&output_data_device1, sizeof(output_data_host1));
-	cudaMalloc(&output_data_device2, sizeof(output_data_host2));
-	cudaMemcpyAsync(input_data_device1, input_data_host1, input_numel * sizeof(float), cudaMemcpyHostToDevice, stream);
-	cudaMemcpyAsync(input_data_device2, input_data_host2, class_num * sizeof(float), cudaMemcpyHostToDevice, stream);
-	float* bindings[] = { input_data_device1, input_data_device2, output_data_device1, output_data_device2 };
+	cudaMemcpyAsync(input_data_device0, input_data_host0, input_numel * sizeof(float), cudaMemcpyHostToDevice, stream);
+	cudaMemcpyAsync(input_data_device1, input_data_host1, class_num * sizeof(float), cudaMemcpyHostToDevice, stream);
+	float* bindings[] = { input_data_device0, input_data_device1, output_data_device0, output_data_device1 };
 
 	bool success = execution_context->enqueueV2((void**)bindings, stream, nullptr);
+	cudaMemcpyAsync(output_data_host0, output_data_device0, sizeof(output_data_host0), cudaMemcpyDeviceToHost, stream);
 	cudaMemcpyAsync(output_data_host1, output_data_device1, sizeof(output_data_host1), cudaMemcpyDeviceToHost, stream);
-	cudaMemcpyAsync(output_data_host2, output_data_device2, sizeof(output_data_host2), cudaMemcpyDeviceToHost, stream);
 	cudaStreamSynchronize(stream);
 
 	std::vector<std::vector<float>> outputs(point_num, std::vector<float>(parts_num, 0));
@@ -163,7 +163,7 @@ std::vector<int> classfier(std::vector<float>& points, std::vector<float>& label
 	{
 		for (size_t j = 0; j < parts_num; j++)
 		{
-			outputs[i][j] = output_data_host2[i * parts_num + j];
+			outputs[i][j] = output_data_host1[i * parts_num + j];
 		}
 	}
 

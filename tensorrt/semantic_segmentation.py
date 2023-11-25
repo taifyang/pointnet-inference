@@ -16,11 +16,11 @@ if __name__ == '__main__':
         engine = runtime.deserialize_cuda_engine(f.read())
     context = engine.create_execution_context()
     h_input = cuda.pagelocked_empty(trt.volume(context.get_binding_shape(0)), dtype=np.float32)
-    h_output1 = cuda.pagelocked_empty(trt.volume(context.get_binding_shape(1)), dtype=np.float32)
-    h_output2 = cuda.pagelocked_empty(trt.volume(context.get_binding_shape(2)), dtype=np.float32)
+    h_output0 = cuda.pagelocked_empty(trt.volume(context.get_binding_shape(1)), dtype=np.float32)
+    h_output1 = cuda.pagelocked_empty(trt.volume(context.get_binding_shape(2)), dtype=np.float32)
     d_input = cuda.mem_alloc(h_input.nbytes)
+    d_output0 = cuda.mem_alloc(h_output0.nbytes)
     d_output1 = cuda.mem_alloc(h_output1.nbytes)
-    d_output2 = cuda.mem_alloc(h_output2.nbytes)
     stream = cuda.Stream()
     
     data = np.loadtxt('./Area_1_conferenceRoom_1.txt').astype(np.float32)
@@ -76,12 +76,12 @@ if __name__ == '__main__':
 
         with engine.create_execution_context() as context:
             cuda.memcpy_htod_async(d_input, h_input, stream)
-            context.execute_async_v2(bindings=[int(d_input), int(d_output1), int(d_output2)], stream_handle=stream.handle)
+            context.execute_async_v2(bindings=[int(d_input), int(d_output0), int(d_output1)], stream_handle=stream.handle)
+            cuda.memcpy_dtoh_async(h_output0, d_output0, stream)
             cuda.memcpy_dtoh_async(h_output1, d_output1, stream)
-            cuda.memcpy_dtoh_async(h_output2, d_output2, stream)
             stream.synchronize()
 
-            seg_pred = h_output2.reshape(1, point_num, class_num)
+            seg_pred = h_output1.reshape(1, point_num, class_num)
             batch_pred_label = np.argmax(seg_pred, 2)
             point_idx = batch_point_index[0:real_batch_size, ...]
             pred_label = batch_pred_label[0:real_batch_size, ...]
