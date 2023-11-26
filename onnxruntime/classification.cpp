@@ -90,17 +90,17 @@ void classfier(std::vector<float> & points)
 	auto memory_info = Ort::MemoryInfo::CreateCpu(OrtArenaAllocator, OrtMemTypeDefault);
 	Ort::Value input_tensor = Ort::Value::CreateTensor<float>(memory_info, input_tensor_values.data(), input_tensor_size, input_node_dims.data(), input_node_dims.size());
 
-	std::vector<Ort::Value> ort_inputs;
-	ort_inputs.push_back(std::move(input_tensor));
+	std::vector<Ort::Value> inputs;
+	inputs.push_back(std::move(input_tensor));
 
-	std::vector<Ort::Value> output_tensors = session.Run(Ort::RunOptions{ nullptr }, input_node_names.data(), ort_inputs.data(), input_node_names.size(), output_node_names.data(), output_node_names.size());
+	std::vector<Ort::Value> outputs = session.Run(Ort::RunOptions{ nullptr }, input_node_names.data(), inputs.data(), input_node_names.size(), output_node_names.data(), output_node_names.size());
 
-	const float* rawOutput = output_tensors[0].GetTensorData<float>();
-	std::vector<int64_t> outputShape = output_tensors[0].GetTensorTypeAndShapeInfo().GetShape();
-	size_t count = output_tensors[0].GetTensorTypeAndShapeInfo().GetElementCount();
-	std::vector<float> output(rawOutput, rawOutput + count);
+	const float* rawOutput = outputs[0].GetTensorData<float>();
+	std::vector<int64_t> outputShape = outputs[0].GetTensorTypeAndShapeInfo().GetShape();
+	size_t count = outputs[0].GetTensorTypeAndShapeInfo().GetElementCount();
+	std::vector<float> pred(rawOutput, rawOutput + count);
 
-	int predict_label = std::max_element(output.begin(), output.end()) - output.begin();
+	int predict_label = std::max_element(pred.begin(), pred.end()) - pred.begin();
 	std::cout << predict_label << std::endl;
 }
 

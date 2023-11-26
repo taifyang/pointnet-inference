@@ -120,24 +120,24 @@ std::vector<int> classfier(std::vector<float> & points, std::vector<float> & lab
 	auto memory_info1 = Ort::MemoryInfo::CreateCpu(OrtArenaAllocator, OrtMemTypeDefault);
 	Ort::Value input_tensor1 = Ort::Value::CreateTensor<float>(memory_info1, input_tensor_values1.data(), input_tensor_size1, input_node_dims1.data(), input_node_dims1.size());
 
-	std::vector<Ort::Value> ort_inputs;
-	ort_inputs.push_back(std::move(input_tensor0));
-	ort_inputs.push_back(std::move(input_tensor1));
+	std::vector<Ort::Value> inputs;
+	inputs.push_back(std::move(input_tensor0));
+	inputs.push_back(std::move(input_tensor1));
 
-	std::vector<Ort::Value> output_tensors = session.Run(Ort::RunOptions{ nullptr }, input_node_names.data(), ort_inputs.data(), input_node_names.size(), output_node_names.data(), output_node_names.size());
+	std::vector<Ort::Value> outputs = session.Run(Ort::RunOptions{ nullptr }, input_node_names.data(), inputs.data(), input_node_names.size(), output_node_names.data(), output_node_names.size());
 
-	const float* rawOutput = output_tensors[0].GetTensorData<float>();
-	std::vector<int64_t> outputShape = output_tensors[0].GetTensorTypeAndShapeInfo().GetShape();
-	size_t count = output_tensors[0].GetTensorTypeAndShapeInfo().GetElementCount();
-	std::vector<float> prob(rawOutput, rawOutput + count);
+	const float* rawOutput = outputs[0].GetTensorData<float>();
+	std::vector<int64_t> outputShape = outputs[0].GetTensorTypeAndShapeInfo().GetShape();
+	size_t count = outputs[0].GetTensorTypeAndShapeInfo().GetElementCount();
+	std::vector<float> pred(rawOutput, rawOutput + count);
 
-	std::vector<std::vector<float>> outputs(point_num, std::vector<float>(parts_num, 0));
+	std::vector<std::vector<float>> preds(point_num, std::vector<float>(parts_num, 0));
 
 	for (size_t i = 0; i < point_num; i++)
 	{
 		for (size_t j = 0; j < parts_num; j++)
 		{
-			outputs[i][j] = prob[i * parts_num + j];
+			preds[i][j] = pred[i * parts_num + j];
 		}
 	}
 
@@ -145,7 +145,7 @@ std::vector<int> classfier(std::vector<float> & points, std::vector<float> & lab
 
 	for (size_t i = 0; i < point_num; i++)
 	{
-		max_index[i]= std::max_element(outputs[i].begin(), outputs[i].end()) - outputs[i].begin();
+		max_index[i]= std::max_element(preds[i].begin(), preds[i].end()) - preds[i].begin();
 	}
 	return max_index;
 }

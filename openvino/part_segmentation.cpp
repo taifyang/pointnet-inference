@@ -97,20 +97,20 @@ std::vector<int> classfier(std::vector<float> & points, std::vector<float> & lab
 	iq.infer();
 
 	auto output = iq.get_output_tensor(0);
-	float* prob = output.data<float>();
-	std::vector<std::vector<float>> outputs(point_num, std::vector<float>(parts_num, 0));
+	float* pred = output.data<float>();
+	std::vector<std::vector<float>> preds(point_num, std::vector<float>(parts_num, 0));
 
 	for (size_t i = 0; i < point_num; i++)
 	{
 		for (size_t j = 0; j < parts_num; j++)
 		{
-			outputs[i][j] = prob[i * parts_num + j];
+			preds[i][j] = pred[i * parts_num + j];
 		}
 	}
 
 	for (size_t i = 0; i < point_num; i++)
 	{
-		max_index[i] = std::max_element(outputs[i].begin(), outputs[i].end()) - outputs[i].begin();
+		max_index[i] = std::max_element(preds[i].begin(), preds[i].end()) - preds[i].begin();
 	}
 	return max_index;
 }

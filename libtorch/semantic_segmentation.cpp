@@ -118,7 +118,6 @@ int main()
 				data_batch.push_back(pts[point_idxs[i]]);
 			}
 
-			//std::cout << index_y << " " << index_x << std::endl;
 			for (size_t i = 0; i < point_size; i++)
 			{
 				data_batch[i].m_normal_x = data_batch[i].m_x / x_max;
@@ -155,7 +154,6 @@ int main()
 
 	for (int sbatch = 0; sbatch < num_blocks; sbatch++)
 	{
-		//std::cout << sbatch << std::endl;
 		int start_idx = sbatch;
 		int end_idx = std::min(sbatch + 1, num_blocks);
 		int real_batch_size = end_idx - start_idx;
@@ -175,17 +173,15 @@ int main()
 			batch[9 * i + 8] = batch_data[i].m_normal_z;
 		}
 
-		torch::Tensor torch_data = torch::from_blob(batch.data(), { 1, point_num, 9 }, torch::kFloat);
-		torch_data = torch_data.to(torch::kCUDA);
-		torch_data = torch_data.permute({ 0, 2, 1 });
+		torch::Tensor inputs = torch::from_blob(batch.data(), { 1, point_num, 9 }, torch::kFloat);
+		inputs = inputs.to(torch::kCUDA);
+		inputs = inputs.permute({ 0, 2, 1 });
 
-		auto outputs = module.forward({ torch_data }).toTuple();
+		auto outputs = module.forward({ inputs }).toTuple();
 		torch::Tensor out0 = outputs->elements()[0].toTensor();
-		//std::cout << out0 << std::endl;
 
 		auto max_index = std::get<1>(torch::max(out0, 2));
 		max_index = torch::squeeze(max_index).to(torch::kCPU).to(torch::kInt);
-		//std::cout << max_index << std::endl;
 
 		std::vector<int> pred_label(max_index.data_ptr<int>(), max_index.data_ptr<int>() + max_index.numel());
 		for (size_t i = 0; i < pred_label.size(); i++)

@@ -65,8 +65,8 @@ void classfier(std::vector<float> & points)
 	
 	iq.infer();
 	
-	float* prob = output.data<float>();
-	int predict_label = std::max_element(prob, prob + class_num) - prob;
+	float* pred = output.data<float>();
+	int predict_label = std::max_element(pred, pred + class_num) - pred;
 	std::cout << predict_label << std::endl;
 }
 

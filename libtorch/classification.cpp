@@ -48,7 +48,6 @@ void classfier(std::vector<float> & points)
 	torch::Tensor points_tensor = torch::from_blob(points.data(), { 1, point_num, 3 }, torch::kFloat);
 	points_tensor = points_tensor.to(torch::kCUDA);
 	points_tensor = points_tensor.permute({ 0, 2, 1 });
-	//std::cout << points_tensor << std::endl;
 
 	torch::jit::script::Module module = torch::jit::load("cls.pt");
 	module.to(torch::kCUDA);
@@ -58,7 +57,6 @@ void classfier(std::vector<float> & points)
 	std::cout << out0 << std::endl;
 
 	auto max_classes = out0.max(1);
-	//auto max_result = std::get<0>(max_classes).item<float>();
 	auto max_index = std::get<1>(max_classes).item<int>();
 	std::cout << max_index << std::endl;
 }

@@ -191,21 +191,21 @@ int main()
 
 		iq.infer();
 
-		float* prob = output.data<float>();
-		std::vector<std::vector<float>> outputs(point_num, std::vector<float>(class_num, 0));
+		float* pred = output.data<float>();
+		std::vector<std::vector<float>> preds(point_num, std::vector<float>(class_num, 0));
 
 		for (size_t i = 0; i < point_num; i++)
 		{
 			for (size_t j = 0; j < class_num; j++)
 			{
-				outputs[i][j] = prob[i * class_num + j];
+				preds[i][j] = pred[i * class_num + j];
 			}
 		}
 
 		std::vector<int> pred_label(point_num, 0);
 		for (size_t i = 0; i < point_num; i++)
 		{
-			pred_label[i] = std::max_element(outputs[i].begin(), outputs[i].end()) - outputs[i].begin();
+			pred_label[i] = std::max_element(preds[i].begin(), preds[i].end()) - preds[i].begin();
 			vote_label_pool[point_idx[i]][pred_label[i]] += 1;
 		}
 	}

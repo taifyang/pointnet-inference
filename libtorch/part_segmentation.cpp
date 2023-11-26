@@ -71,24 +71,18 @@ at::Tensor classfier(std::vector<float> & points, std::vector<float> & labels)
 
 	points_tensor = points_tensor.to(torch::kCUDA);
 	points_tensor = points_tensor.permute({ 0, 2, 1 });
-	//std::cout << points_tensor << std::endl;
 	labels_tensor = labels_tensor.to(torch::kCUDA);
-	//std::cout << labels_tensor << std::endl;
 
 	torch::jit::script::Module module = torch::jit::load("part_seg.pt");
 	module.to(torch::kCUDA);
 
 	auto outputs = module.forward({ points_tensor, labels_tensor }).toTuple();
 	torch::Tensor out0 = outputs->elements()[0].toTensor();
-	//std::cout << out0 << std::endl; //[ CUDAFloatType{1,2048,4} ]
 	out0 = torch::squeeze(out0);
-	//std::cout << out0 << std::endl; //[ CUDAFloatType{2048,4} ]
 
 	auto max_classes = out0.max(1);
 	auto max_result = std::get<0>(max_classes);
 	auto max_index = std::get<1>(max_classes);
-	//std::cout << max_result << std::endl;
-	//std::cout << max_index << std::endl;
 
 	return max_index;
 }
