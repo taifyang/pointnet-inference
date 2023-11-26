@@ -64,9 +64,17 @@ void classfier(std::vector<float> & points)
 	Ort::Session session(env, model_path, session_options);
 	Ort::AllocatorWithDefaultOptions allocator;
 
-	size_t num_input_nodes = session.GetInputCount();
-	std::vector<const char*> input_node_names = { "input.1" };
-	std::vector<const char*> output_node_names = { "212" };
+	std::vector<const char*>  input_node_names;
+	for (size_t i = 0; i < session.GetInputCount(); i++)
+	{
+		input_node_names.push_back(session.GetInputName(i, allocator));
+	}
+
+	std::vector<const char*> output_node_names;
+	for (size_t i = 0; i < session.GetOutputCount(); i++)
+	{
+		output_node_names.push_back(session.GetOutputName(i, allocator));
+	}
 
 	const size_t input_tensor_size = 1 * 3 * point_num ;
 	std::vector<float> input_tensor_values(input_tensor_size);

@@ -44,5 +44,5 @@ if __name__ == '__main__':
         cuda.memcpy_dtoh_async(h_output0, d_output0, stream)
         cuda.memcpy_dtoh_async(h_output1, d_output1, stream)
         stream.synchronize()
-        pred = np.argmax(h_output1)
-        print(pred)
+        outputs = np.argmax(h_output1)
+        print(outputs)

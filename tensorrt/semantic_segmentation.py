@@ -81,8 +81,8 @@ if __name__ == '__main__':
             cuda.memcpy_dtoh_async(h_output1, d_output1, stream)
             stream.synchronize()
 
-            seg_pred = h_output1.reshape(1, point_num, class_num)
-            batch_pred_label = np.argmax(seg_pred, 2)
+            outputs = h_output1.reshape(1, point_num, class_num)
+            batch_pred_label = np.argmax(outputs, 2)
             point_idx = batch_point_index[0:real_batch_size, ...]
             pred_label = batch_pred_label[0:real_batch_size, ...]
             for b in range(pred_label.shape[0]):

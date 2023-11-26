@@ -61,10 +61,10 @@ if __name__ == '__main__':
         cuda.memcpy_dtoh_async(h_output1, d_output1, stream)
         stream.synchronize()
 
-        cur_pred_val_logits = h_output1.reshape(1, point_num, parts_num)
+        outputs = h_output1.reshape(1, point_num, parts_num)
         cur_pred_val = np.zeros((1, point_num)).astype(np.int32)
         
-        logits = cur_pred_val_logits[0, :, :]
+        logits = outputs[0, :, :]
         cur_pred_val[0, :] = np.argmax(logits, 1)
 
         pts = np.append(pts.reshape(point_num, 3), cur_pred_val[0, :].reshape(point_num, 1), 1)

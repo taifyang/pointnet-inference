@@ -2,7 +2,6 @@
 #include <fstream>
 #include <vector>
 #include <algorithm>
-#include <ctime>
 #include <random>
 #include <onnxruntime_cxx_api.h>
 
@@ -119,7 +118,6 @@ int main()
 				data_batch.push_back(pts[point_idxs[i]]);
 			}
 
-			//std::cout << index_y << " " << index_x << std::endl;
 			for (size_t i = 0; i < point_size; i++)
 			{
 				data_batch[i].m_normal_x = data_batch[i].m_x / x_max;
@@ -151,8 +149,6 @@ int main()
 	std::vector<std::vector<int>> vote_label_pool(points_num, std::vector<int>(class_num, 0));
 	int num_blocks = data_rooms.size();
 
-	clock_t start = clock();
-
 	Ort::Env env(ORT_LOGGING_LEVEL_WARNING, "sem_seg");
 	Ort::SessionOptions session_options;
 	session_options.SetIntraOpNumThreads(1);
@@ -171,16 +167,23 @@ int main()
 	Ort::Session session(env, model_path, session_options);
 	Ort::AllocatorWithDefaultOptions allocator;
 
-	size_t num_input_nodes = session.GetInputCount();
-	std::vector<const char*> input_node_names = { "input.1" };
-	std::vector<const char*> output_node_names = { "268" };
+	std::vector<const char*>  input_node_names;
+	for (size_t i = 0; i < session.GetInputCount(); i++)
+	{
+		input_node_names.push_back(session.GetInputName(i, allocator));
+	}
+
+	std::vector<const char*> output_node_names;
+	for (size_t i = 0; i < session.GetOutputCount(); i++)
+	{
+		output_node_names.push_back(session.GetOutputName(i, allocator));
+	}
 
 	const size_t input_tensor_size = 1 * 9 * point_num;
 	std::vector<float> input_tensor_values(input_tensor_size);
 
 	for (int sbatch = 0; sbatch < num_blocks; sbatch++)
 	{
-		//std::cout << sbatch << std::endl;
 		int start_idx = sbatch;
 		int end_idx = std::min(sbatch + 1, num_blocks);
 		int real_batch_size = end_idx - start_idx;
@@ -229,9 +232,7 @@ int main()
 			for (size_t j = 0; j < class_num; j++)
 			{
 				outputs[i][j] = prob[i * class_num + j];
-				//std::cout << outputs[i][j] << " ";
 			}
-			//std::cout << std::endl;
 		}
 
 		std::vector<int> pred_label(point_num, 0);
@@ -242,16 +243,13 @@ int main()
 		}
 	}
 
-	clock_t stop = clock();
-	std::cout << stop - start << std::endl;
-
 	std::ofstream outfile("pred.txt");
 	for (size_t i = 0; i < points_num; i++)
 	{
 		int max_index = std::max_element(vote_label_pool[i].begin(), vote_label_pool[i].end()) - vote_label_pool[i].begin();
 		outfile << pts[i].m_x << " " << pts[i].m_y << " " << pts[i].m_z << " " << max_index << std::endl;
 	}
-
 	outfile.close();
+
 	return 0;
 }

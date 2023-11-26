@@ -1,7 +1,6 @@
 #include <iostream>
 #include <vector>
 #include <fstream>
-#include <ctime>
 #include <onnxruntime_cxx_api.h>
 
 
@@ -86,9 +85,17 @@ std::vector<int> classfier(std::vector<float> & points, std::vector<float> & lab
 	Ort::Session session(env, model_path, session_options);
 	Ort::AllocatorWithDefaultOptions allocator;
 
-	size_t num_input_nodes = session.GetInputCount();
-	std::vector<const char*> input_node_names = { "input.1" , "1"};
-	std::vector<const char*> output_node_names = { "277" };
+	std::vector<const char*>  input_node_names;
+	for (size_t i = 0; i < session.GetInputCount(); i++)
+	{
+		input_node_names.push_back(session.GetInputName(i, allocator));
+	}
+
+	std::vector<const char*> output_node_names;
+	for (size_t i = 0; i < session.GetOutputCount(); i++)
+	{
+		output_node_names.push_back(session.GetOutputName(i, allocator));
+	}
 
 	const size_t input_tensor_size0 = 1 * 3 * point_num;
 	std::vector<float> input_tensor_values0(input_tensor_size0);
@@ -131,9 +138,7 @@ std::vector<int> classfier(std::vector<float> & points, std::vector<float> & lab
 		for (size_t j = 0; j < parts_num; j++)
 		{
 			outputs[i][j] = prob[i * parts_num + j];
-			//std::cout <<outputs[i][j] << " ";
 		}
-		//std::cout << std::endl;
 	}
 
 	std::vector<int> max_index(point_num, 0);
@@ -141,7 +146,6 @@ std::vector<int> classfier(std::vector<float> & points, std::vector<float> & lab
 	for (size_t i = 0; i < point_num; i++)
 	{
 		max_index[i]= std::max_element(outputs[i].begin(), outputs[i].end()) - outputs[i].begin();
-		//std::cout << max_index[i] << " ";
 	}
 	return max_index;
 }

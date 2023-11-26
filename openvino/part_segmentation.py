@@ -21,7 +21,7 @@ def pc_normalize(pc):
 
 
 if __name__ == '__main__':
-    data = np.loadtxt('85a15c26a6e9921ae008cc4902bfe3cd.txt').astype(np.float32)
+    data = np.loadtxt('85a15c26a6e9921ae008cc4902bfe3cd.txt')
     point_set = data[:, 0:3]
     point_set[:, 0:3] = pc_normalize(point_set[:, 0:3])
 
@@ -37,13 +37,16 @@ if __name__ == '__main__':
     #net = ie.read_network(model="part_seg.onnx")
     net = ie.read_network(model="part_seg/part_seg_fp16.xml", weights="part_seg/part_seg_fp16.bin")
     exec_net = ie.load_network(network=net, device_name="CPU")
-
-    infer_request_handle=exec_net.start_async(request_id=0, inputs={"input.1":points, "1":to_categorical(label, class_num)})
+    input_names = []
+    for key in net.input_info:
+        input_names.append(key)
+    infer_request_handle=exec_net.start_async(request_id=0, inputs={input_names[0]:to_categorical(label, class_num), input_names[1]:points})
+    
     if infer_request_handle.wait(-1) == 0:
-        pred = infer_request_handle.output_blobs["277"]
-        outs = pred.buffer
+        output_layer = infer_request_handle._outputs_list[1]
+        outputs = infer_request_handle.output_blobs[output_layer] 
 
-        cur_pred_val_logits = outs
+        cur_pred_val_logits = outputs.buffer
         cur_pred_val = np.zeros((1, point_num)).astype(np.int32)  
         logits = cur_pred_val_logits[0, :, :]
         cur_pred_val[0, :] = np.argmax(logits, 1)

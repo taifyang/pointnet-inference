@@ -48,11 +48,11 @@ if __name__ == '__main__':
 
     onnx_session = onnxruntime.InferenceSession("sem_seg.onnx", providers=['CUDAExecutionProvider', 'CPUExecutionProvider'])
 
-    input_name=[]
+    input_name = []
     for node in onnx_session.get_inputs():
         input_name.append(node.name)
 
-    output_name=[]
+    output_name = []
     for node in onnx_session.get_outputs():
         output_name.append(node.name)
 
@@ -69,13 +69,13 @@ if __name__ == '__main__':
         batch_data[0:real_batch_size, ...] = data_room[start_idx:end_idx, ...]
         batch_point_index[0:real_batch_size, ...] = index_room[start_idx:end_idx, ...]
 
-        input_feed={}
+        inputs = {}
         for name in input_name:
-            input_feed[name] = batch_data.swapaxes(2, 1).astype(np.float32)
+            inputs[name] = batch_data.swapaxes(2, 1).astype(np.float32)
 
-        seg_pred = onnx_session.run(None, input_feed)[0]
+        outputs = onnx_session.run(None, inputs)[0]
 
-        batch_pred_label = np.argmax(seg_pred, 2)
+        batch_pred_label = np.argmax(outputs, 2)
 
         point_idx = batch_point_index[0:real_batch_size, ...]
         pred_label = batch_pred_label[0:real_batch_size, ...]

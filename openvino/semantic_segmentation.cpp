@@ -2,14 +2,12 @@
 #include <fstream>
 #include <vector>
 #include <algorithm>
-#include <ctime>
 #include <random>
 #include <openvino/openvino.hpp>
 
 
 const int point_num = 4096;
 const int class_num = 13;
-
 
 
 struct point
@@ -120,7 +118,6 @@ int main()
 				data_batch.push_back(pts[point_idxs[i]]);
 			}
 
-			//std::cout << index_y << " " << index_x << std::endl;
 			for (size_t i = 0; i < point_size; i++)
 			{
 				data_batch[i].m_normal_x = data_batch[i].m_x / x_max;
@@ -152,8 +149,10 @@ int main()
 	std::vector<std::vector<int>> vote_label_pool(points_num, std::vector<int>(class_num, 0));
 	int num_blocks = data_rooms.size();
 
+	clock_t start = clock();
+
 	ov::Core core;
-	//auto model = core.compile_model("sem_seg.onnx", "CPU");
+	//auto model = core.compile_model("./sem_seg.onnx", "CPU");
 	auto model = core.compile_model("./sem_seg/sem_seg_fp16.xml", "CPU");
 	auto iq = model.create_infer_request();
 	auto input = iq.get_input_tensor(0);
@@ -163,7 +162,6 @@ int main()
 
 	for (int sbatch = 0; sbatch < num_blocks; sbatch++)
 	{
-		//std::cout << sbatch << std::endl;
 		int start_idx = sbatch;
 		int end_idx = std::min(sbatch + 1, num_blocks);
 		int real_batch_size = end_idx - start_idx;
@@ -201,9 +199,7 @@ int main()
 			for (size_t j = 0; j < class_num; j++)
 			{
 				outputs[i][j] = prob[i * class_num + j];
-				//std::cout << outputs[i][j] << " ";
 			}
-			//std::cout << std::endl;
 		}
 
 		std::vector<int> pred_label(point_num, 0);
@@ -220,7 +216,7 @@ int main()
 		int max_index = std::max_element(vote_label_pool[i].begin(), vote_label_pool[i].end()) - vote_label_pool[i].begin();
 		outfile << pts[i].m_x << " " << pts[i].m_y << " " << pts[i].m_z << " " << max_index << std::endl;
 	}
-
 	outfile.close();
+
 	return 0;
 }

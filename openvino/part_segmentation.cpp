@@ -46,7 +46,7 @@ void pc_normalize(std::vector<float>& points)
 }
 
 
-void resample(std::vector<float>& points)
+void resample(std::vector<float> & points)
 {
 	srand((int)time(0));
 	std::vector<int> choice(point_num);
@@ -83,9 +83,7 @@ std::vector<int> classfier(std::vector<float> & points, std::vector<float> & lab
 		for (size_t j = 0; j < point_num; j++)
 		{
 			input_data_host0[i * point_num + j] = points[3 * j + i];
-			//std::cout << input_data_host[i * point_num + j] << " ";
 		}
-		//std::cout << std::endl;
 	}
 
 	auto input1 = iq.get_input_tensor(1);
@@ -107,15 +105,12 @@ std::vector<int> classfier(std::vector<float> & points, std::vector<float> & lab
 		for (size_t j = 0; j < parts_num; j++)
 		{
 			outputs[i][j] = prob[i * parts_num + j];
-			//std::cout <<outputs[i][j] << " ";
 		}
-		//std::cout << std::endl;
 	}
 
 	for (size_t i = 0; i < point_num; i++)
 	{
-		max_index[i]= std::max_element(outputs[i].begin(), outputs[i].end()) - outputs[i].begin();
-		//std::cout << max_index[i] << " ";
+		max_index[i] = std::max_element(outputs[i].begin(), outputs[i].end()) - outputs[i].begin();
 	}
 	return max_index;
 }
@@ -148,7 +143,7 @@ int main()
 	std::fstream outfile("pred.txt", 'w');
 	for (size_t i = 0; i < point_num; i++)
 	{
-		outfile << points[3 * i] << " " << points[3 * i + 1] << " " << points[3 * i + 2] << " " << result[i]<< std::endl;
+		outfile << points[3 * i] << " " << points[3 * i + 1] << " " << points[3 * i + 2] << " " << result[i] << std::endl;
 	}
 	outfile.close();
 

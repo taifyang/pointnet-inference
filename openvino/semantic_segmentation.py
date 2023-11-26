@@ -9,7 +9,7 @@ block_size = 1.0
 
 
 if __name__ == '__main__':
-    data = np.load('Area_1_conferenceRoom_1.npy')
+    data = np.loadtxt('Area_1_conferenceRoom_1.txt')
     points = data[:,:6]
     coord_min, coord_max = np.amin(points, axis=0)[:3], np.amax(points, axis=0)[:3]
     grid_x = int(np.ceil(float(coord_max[0] - coord_min[0] - block_size) / stride) + 1)
@@ -50,6 +50,7 @@ if __name__ == '__main__':
     #net = ie.read_network(model="sem_seg.onnx")
     net = ie.read_network(model="sem_seg/sem_seg_fp16.xml", weights="sem_seg/sem_seg_fp16.bin")
     exec_net = ie.load_network(network=net, device_name="CPU")
+    input_name = next(iter(net.input_info))
 
     vote_label_pool = np.zeros((points.shape[0], class_num))
     num_blocks = data_room.shape[0]
@@ -63,12 +64,11 @@ if __name__ == '__main__':
         batch_data[0:real_batch_size, ...] = data_room[start_idx:end_idx, ...]
         batch_point_index[0:real_batch_size, ...] = index_room[start_idx:end_idx, ...]
         input = batch_data.swapaxes(2, 1).astype(np.float32)
-        infer_request_handle=exec_net.start_async(request_id=0, inputs={"input.1":input})
+        infer_request_handle = exec_net.start_async(request_id=0, inputs={input_name: input})
         if infer_request_handle.wait(-1) == 0:
-            pred = infer_request_handle.output_blobs["268"]
-            outs = pred.buffer
-            
-            batch_pred_label = np.argmax(outs, 2)
+            output_layer = infer_request_handle._outputs_list[1]
+            outputs = infer_request_handle.output_blobs[output_layer]           
+            batch_pred_label = np.argmax(outputs.buffer, 2)
             point_idx = batch_point_index[0:real_batch_size, ...]
             pred_label = batch_pred_label[0:real_batch_size, ...]
             for b in range(pred_label.shape[0]):
